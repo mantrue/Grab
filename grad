@@ -1,7 +1,7 @@
 <?php
 namespace Admin\Controller;
 use Think\Controller;
-/**   新的提交
+/**   
 * 类的含义说明 
 * @access public 
 * @since 1.0 
