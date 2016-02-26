@@ -17,19 +17,23 @@ class Grab{
     */
     public function filterUrl ( $url ) {
         //$url   = $_POST['url'];
-        $urlname = dirname($url);
+        $urlname = parse_url($url);
+        $urlname = $urlname['host'];
         switch ($urlname) {
-            case 'http://item.jd.com':  //京东专用
+            case 'item.jd.com':  //京东专用
                 $arr = $this->jdInterFace( $url );
                 break;
-            case 'https://item.taobao.com': //淘宝抓取专用
+            case 'item.taobao.com': //淘宝抓取专用
                 $arr = $this->tbInterFace( $url );
                 break;
-            case 'https://detail.tmall.com': //抓取天猫
+            case 'detail.tmall.com': //抓取天猫
                 $arr = $this->tmInterFace( $url );
                 break;
+            case 'item.yhd.com': //抓取1号店
+                $arr = $this->yhdInterFace( $url );
+                break;
             default:
-                $arr['oode']=400;
+                $arr['code']=400;
                 break;
         }
 
@@ -49,22 +53,23 @@ class Grab{
         //匹配图片
         $ul = explode( '<div class="spec-items">',$output );
         list( $img ) = explode( "</div>",$ul[1] );
-        $pattern = '/((http|https):\/\/)+(\w+\.)+(\w+)[\w\/\.\-]*(jpg|gif|png)/';
+        $pattern="/<[img|IMG].*?src=[\'|\"](.*?(?:[\.gif|\.jpg]))[\'|\"].*?[\/]?>/";
         preg_match_all( $pattern,$img,$imgdata );
         //更换链接
         $imgrep = array();
-        foreach( $imgdata[0] as $v ) {
-            $imgrep[] = str_replace( 'n5','n0',$v );
+        foreach( $imgdata[1] as $v ) {
+            $imgrep[] = str_replace( 'n5','n0','http:'.$v );
         }
         //匹配标题
         $title = explode( '<h1>',$output );
         list($titledata) = explode( '</h1>',$title[1] );
         $filepath = __ROOT__.'./Uploads/Admin/'.date('Y-m-d',time()); //远程图片要保存的路径
         $arr = array();
+        
         foreach($imgrep as $k=>$v) {
             $arr['imgurl'][] = self::writeImage($v,$filepath);
         }
-        $arr['title'] = iconv('gb2312','utf-8',$titledata);
+        $arr['title'] = iconv('gbk','utf-8',$titledata);
         $arr['url'] = $url;
         $arr['price'] = self::getPrice( $url );
         $arr['source'] = '京东';
@@ -172,7 +177,8 @@ class Grab{
         //匹配出图片链接同时替换为大图的规则
         $imgrep = array();
         foreach( $imgpath[1] as $v ) {
-            $imgrep[] = str_replace( '50','400','http://'.$v );
+            //$imgrep[] = str_replace( '50','400','http://'.$v );
+            $imgrep[] = str_replace( '50x50','400x400','http://'.$v );
         }
         //匹配标题
         preg_match_all('/<h3\s(.*)\sdata-title=\"(.*)\"/',$output,$title);
@@ -186,7 +192,7 @@ class Grab{
         foreach($imgrep as $k=>$v) {
             $arr['imgurl'][] = self::writeImage($v,$filepath);
         }
-        $arr['title'] = iconv('gb2312','utf-8',$title[2][0]);
+        $arr['title'] = iconv('gbk','utf-8',$title[2][0]);
         $arr['url'] = $url;
         $zudiprice = self::getTbPrice( $url );
         if (empty($zudiprice)) {
@@ -225,7 +231,6 @@ class Grab{
         return $re[1][0];
     }
 
-
     /** 
     * tmInterFace
     * 天猫数据接口
@@ -244,7 +249,7 @@ class Grab{
         //匹配出图片链接同时替换为大图的规则
         $imgrep = array();
         foreach( $imgpath[1] as $v ) {
-            $imgrep[] = str_replace( '60','430','http://'.$v );
+            $imgrep[] = str_replace( '60x60','430x430','http://'.$v );
         }
         //匹配标题
         preg_match_all('/content=\"(.*)\"/',$output,$title);
@@ -254,7 +259,7 @@ class Grab{
         foreach($imgrep as $k=>$v) {
             $arr['imgurl'][] = self::writeImage($v,$filepath);
         }
-        $arr['title'] = iconv('gb2312','utf-8',$title[1][0]);
+        $arr['title'] = iconv('gbk','utf-8',$title[1][0]);
         $arr['url'] = $url;
         $arr['price'] = self::getTmPrice( $url );
         $arr['source'] = '天猫';
@@ -281,6 +286,7 @@ class Grab{
         curl_setopt($ch,CURLOPT_RETURNTRANSFER,true);  
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);//规避证书
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, 1); // 防止302 盗链
+        curl_setopt($ch, CURLOPT_USERAGENT, "Mozilla/0 (Windows; U; Windows NT 0; zh-CN; rv:3)"); //模拟浏览器请求
         $result = curl_exec($ch);  
         curl_close($ch);
         //去除回车、空格等   
@@ -294,7 +300,7 @@ class Grab{
             }  
         }  
         //将字符编码转为utf-8，并且将中文转译，否则json_decode会出现错误   
-        $result=iconv('gb2312','utf-8',$result);  
+        $result=iconv('gbk','utf-8',$result);  
         $str=array();  
         $mode='/([\x80-\xff]*)/i';  
         if(preg_match_all($mode,$result,$s)){  
@@ -315,6 +321,83 @@ class Grab{
             
         }
         return $arrprice;
+    }
+
+    /** 
+    * yhdInterFace
+    * 1号店数据接口
+    * @access public 
+    * @param mixed $url 要抓取的网站的地址
+    * @since 1.0
+    * @return 抓取成功的数据
+    */
+
+    public function yhdInterFace ( $url ) {
+        $output = self::sendCurl( $url );
+        //匹配图片
+        $div = explode('<div class="mBox clearfix"',$output);
+        list($imgdata) = explode('</div>', $div[1]);
+        $pattern = '/((http|https):\/\/)+(\w+\.)+(\w+)[\w\/\.\-]*(jpg|gif|png)/';
+        preg_match_all( $pattern,$imgdata,$imgpath );
+        $imgrep = array();
+        foreach( $imgpath[0] as $v ) {
+            $imgrep[] = str_replace( '50x50','360x360',$v ); //标准替换，看成一个整体
+        }
+        //匹配标题
+        preg_match_all('/<h1(.*)>(.*)<\/h1>/',$output,$title);//print_r($price[2][0]);
+        //匹配价格
+        preg_match_all('/<a[\s]class=\"ico_sina\"(.*)￥(\d+\.*[\d*])(.*)>(.*)<\/a>/',$output,$price);
+
+
+        $filepath = __ROOT__.'./Uploads/Admin/'.date('Y-m-d',time()); //远程图片要保存的路径
+        $arr = array();
+        foreach($imgrep as $k=>$v) {
+            $arr['imgurl'][] = self::writeImage($v,$filepath);
+        }
+        $arr['title'] = $title[2][0];
+        $arr['url'] = $url;
+        $arr['price'] = $price[2][0];
+        $arr['source'] = '1号店';
+        $arr['code'] = 200;
+        return $arr;
+
+    }
+
+
+    //获取测试图片
+    function getimg_ceshi($url, $filepath) {  
+  
+        if ($url == '') {  
+            return false;  
+        }  
+        $ext = strrchr($url, '.');  
+      
+        if ($ext != '.gif' && $ext != '.jpg' && $ext != '.png') {  
+            return false;  
+        }
+        //判断路经是否存在
+        !is_dir($filepath)?mkdir($filepath):null;  
+      
+        //获得随机的图片名，并加上后辍名  
+        $filetime = time();  
+        $filename = date("YmdHis",$filetime).rand(100,999).'.'.substr($url,-3,3);  
+      
+        //读取图片  
+        $ch = curl_init();
+        $timeout = 5;
+        curl_setopt ($ch, CURLOPT_URL, $url);
+        curl_setopt ($ch, CURLOPT_RETURNTRANSFER, 1);
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows; U; Windows NT 6.1; en; rv:1.9.2) Gecko/20100115 Firefox/3.6 GTBDFff GTB7.0');
+        curl_setopt ($ch, CURLOPT_CONNECTTIMEOUT, $timeout);
+        $img = curl_exec($ch);
+        //$img = file_get_contents($url); 
+        
+        //指定打开的文件  
+        $fp = @ fopen($filepath.'/'.$filename, 'a');  
+        //写入图片到指定的文本  
+        fwrite($fp, $img);  
+        fclose($fp);  
+        return '/'.$filepath.'/'.$filename;  
     }
 
 }
