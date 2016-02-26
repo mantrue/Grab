@@ -1,6 +1,4 @@
 <?php
-namespace Admin\Controller;
-use Think\Controller;
 /**   
 * 类的含义说明 
 * @access public 
@@ -8,7 +6,7 @@ use Think\Controller;
 * @author    penghui444@163.com
 * @explain   各大网站数据的抓取
 */ 
-class GrabController extends CommonController {
+class Grab{
     /** 
     * filterUrl
     * 获取模型
@@ -17,8 +15,8 @@ class GrabController extends CommonController {
     * @since 1.0
     * @return 无返回值
     */
-    public function filterUrl () {
-        $url   = $_POST['url'];
+    public function filterUrl ( $url ) {
+        //$url   = $_POST['url'];
         $urlname = dirname($url);
         switch ($urlname) {
             case 'http://item.jd.com':  //京东专用
