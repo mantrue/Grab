@@ -36,7 +36,7 @@ class Grab{
                 $arr['code']=400;
                 break;
         }
-        echo json_encode($arr);
+		return $arr;
     }
     /** 
     * jdInterFace
@@ -62,7 +62,7 @@ class Grab{
         //匹配标题
         $title = explode( '<h1>',$output );
         list($titledata) = explode( '</h1>',$title[1] );
-        $filepath = __ROOT__.'./Uploads/Admin/'.date('Y-m-d',time()); //远程图片要保存的路径
+        $filepath = 'Uploads/'.date('Y-m-d',time()); //远程图片要保存的路径
         $arr = array();
         
         foreach($imgrep as $k=>$v) {
@@ -93,7 +93,6 @@ class Grab{
         curl_close( $curl );
         return $output;
     }
-
     /** 
     * writeImage
     * 根据url图片路径把图片写入到执行的目录下  共享
@@ -129,7 +128,6 @@ class Grab{
         fclose($fp);
         return '/'.$filepath.'/'.$filename;
     }
-
     /** 
     * getPrice    京东专用
     * 根据url获取该url商品的价格
@@ -152,8 +150,6 @@ class Grab{
         $pd = json_decode($output);
         return $pd[0]->p;
     }
-
-
     /** 
     * tbInterFace
     * 淘宝数据接口
@@ -177,11 +173,8 @@ class Grab{
         }
         //匹配标题
         preg_match_all('/<h3\s(.*)\sdata-title=\"(.*)\"/',$output,$title);
-
         //匹配价格
         preg_match_all('/<em class=\"tb-rmb-num\">(.*)<\/em>/',$output,$price);
-
-
         $filepath = __ROOT__.'./Uploads/Admin/'.date('Y-m-d',time()); //远程图片要保存的路径
         $arr = array();
         foreach($imgrep as $k=>$v) {
@@ -225,7 +218,6 @@ class Grab{
         preg_match_all('/price:\"(.*)\"/U',$result,$re);
         return $re[1][0];
     }
-
     /** 
     * tmInterFace
     * 天猫数据接口
@@ -248,7 +240,6 @@ class Grab{
         }
         //匹配标题
         preg_match_all('/content=\"(.*)\"/',$output,$title);
-
         $filepath = __ROOT__.'./Uploads/Admin/'.date('Y-m-d',time()); //远程图片要保存的路径
         $arr = array();
         foreach($imgrep as $k=>$v) {
@@ -270,7 +261,6 @@ class Grab{
     * @since 1.0
     * @return 抓取成功的数据
     */
-
     public static function getTmPrice ( $urls ) {
         preg_match_all('/id=(\d+)/',$urls,$id);
         $url='https://mdskip.taobao.com/core/initItemDetail.htm?itemId='.$id[1][0];  
@@ -317,7 +307,6 @@ class Grab{
         }
         return $arrprice;
     }
-
     /** 
     * yhdInterFace
     * 1号店数据接口
@@ -326,7 +315,6 @@ class Grab{
     * @since 1.0
     * @return 抓取成功的数据
     */
-
     public function yhdInterFace ( $url ) {
         $output = self::sendCurl( $url );
         //匹配图片
@@ -342,8 +330,6 @@ class Grab{
         preg_match_all('/<h1(.*)>(.*)<\/h1>/',$output,$title);//print_r($price[2][0]);
         //匹配价格
         preg_match_all('/<a[\s]class=\"ico_sina\"(.*)￥(\d+\.*[\d*])(.*)>(.*)<\/a>/',$output,$price);
-
-
         $filepath = __ROOT__.'./Uploads/Admin/'.date('Y-m-d',time()); //远程图片要保存的路径
         $arr = array();
         foreach($imgrep as $k=>$v) {
@@ -355,10 +341,7 @@ class Grab{
         $arr['source'] = '1号店';
         $arr['code'] = 200;
         return $arr;
-
     }
-
-
     //获取测试图片
     function getimg_ceshi($url, $filepath) {  
   
@@ -394,5 +377,4 @@ class Grab{
         fclose($fp);  
         return '/'.$filepath.'/'.$filename;  
     }
-
 }
