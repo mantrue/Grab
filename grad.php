@@ -36,8 +36,7 @@ class Grab{
                 $arr['code']=400;
                 break;
         }
-
-        $this->ajaxReturn( $arr,'json' );
+        echo json_encode($arr);
     }
     /** 
     * jdInterFace
@@ -127,10 +126,6 @@ class Grab{
         $fp = @ fopen($filepath.'/'.$filename, 'a');
         //写入图片到指定的文本  
         fwrite($fp, $img);
-        $image = new \Think\Image();  //同时生成缩略图
-        $image->open( $filepath.'/'.$filename );
-        $image->thumb( C('SHOP_IMG_SIZE_MAX'), C('SHOP_IMG_SIZE_MAX') )->save( $filepath.'/'.'s_'.$filename );
-        $image->thumb( C('SHOP_IMG_SIZE_MIN'), C('SHOP_IMG_SIZE_MIN') )->save( $filepath.'/'.'m_'.$filename );  
         fclose($fp);
         return '/'.$filepath.'/'.$filename;
     }
