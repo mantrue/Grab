@@ -62,7 +62,7 @@ class Grab{
         //匹配标题
         $title = explode( '<h1>',$output );
         list($titledata) = explode( '</h1>',$title[1] );
-        $filepath = 'Uploads/'.date('Y-m-d',time()); //远程图片要保存的路径
+        $filepath = './Uploads/'.date('Y-m-d',time()); //远程图片要保存的路径
         $arr = array();
         
         foreach($imgrep as $k=>$v) {
@@ -175,7 +175,7 @@ class Grab{
         preg_match_all('/<h3\s(.*)\sdata-title=\"(.*)\"/',$output,$title);
         //匹配价格
         preg_match_all('/<em class=\"tb-rmb-num\">(.*)<\/em>/',$output,$price);
-        $filepath = __ROOT__.'./Uploads/Admin/'.date('Y-m-d',time()); //远程图片要保存的路径
+        $filepath = './Uploads/Admin/'.date('Y-m-d',time()); //远程图片要保存的路径
         $arr = array();
         foreach($imgrep as $k=>$v) {
             $arr['imgurl'][] = self::writeImage($v,$filepath);
@@ -240,18 +240,45 @@ class Grab{
         }
         //匹配标题
         preg_match_all('/content=\"(.*)\"/',$output,$title);
-        $filepath = __ROOT__.'./Uploads/Admin/'.date('Y-m-d',time()); //远程图片要保存的路径
+        $filepath = './Uploads/Admin/'.date('Y-m-d',time()); //远程图片要保存的路径
         $arr = array();
-        foreach($imgrep as $k=>$v) {
-            $arr['imgurl'][] = self::writeImage($v,$filepath);
-        }
-        $arr['title'] = iconv('gbk','utf-8',$title[1][0]);
-        $arr['url'] = $url;
-        $arr['price'] = self::getTmPrice( $url );
-        $arr['source'] = '天猫';
-        $arr['code'] = 200;
-        return $arr;
+		
+		$pids = array();
         
+		foreach($imgrep as $k=>$v) {
+			echo "执行次数".$k;
+			$pids[$i] = pcntl_fork();
+			
+			if ( $pids[$i] == -1 ) {
+				throw new Exception('fork fail');
+			}
+			
+			if( $pids[$i] == 0 ) {
+				$imgurl = self::writeImage($v,$filepath);
+				file_put_contents('urllist.txt',$imgurl.PHP_EOL,FILE_APPEND);
+				exit(0);
+			}
+			
+			if ( $pids[$i] > 0 ) {
+				$ppid = pcntl_waitpid($pids[$i], $status, WUNTRACED);
+				unset($pids[$ppid]);
+			}
+			
+        }
+		
+		if (empty( $pids )) {
+			$as = file_get_contents("urllist.txt");
+			print_r(1111);
+			print_r($as);die();
+			
+			$arr['title'] = iconv('gbk','utf-8',$title[1][0]);
+			$arr['url'] = $url;
+			$arr['price'] = self::getTmPrice( $url );
+			$arr['source'] = '天猫';
+			$arr['code'] = 200;
+			return $arr;
+		}
+		
     }
     /** 
     * tmInterFace
@@ -330,7 +357,7 @@ class Grab{
         preg_match_all('/<h1(.*)>(.*)<\/h1>/',$output,$title);//print_r($price[2][0]);
         //匹配价格
         preg_match_all('/<a[\s]class=\"ico_sina\"(.*)￥(\d+\.*[\d*])(.*)>(.*)<\/a>/',$output,$price);
-        $filepath = __ROOT__.'./Uploads/Admin/'.date('Y-m-d',time()); //远程图片要保存的路径
+        $filepath = './Uploads/Admin/'.date('Y-m-d',time()); //远程图片要保存的路径
         $arr = array();
         foreach($imgrep as $k=>$v) {
             $arr['imgurl'][] = self::writeImage($v,$filepath);
